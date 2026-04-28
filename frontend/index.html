@@ -3,285 +3,370 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SafeRoute — Safety-First Navigation</title>
+<title>SafeRoute — Risk-Aware Navigation</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #0a0e1a;
-    --surface: #111827;
-    --surface2: #1a2236;
-    --border: rgba(255,255,255,0.08);
-    --accent: #00d4aa;
-    --accent2: #ff6b6b;
-    --amber: #f59e0b;
-    --text: #f0f4ff;
-    --muted: #8896b3;
-    --font: 'DM Mono', 'Courier New', monospace;
-    --sans: 'DM Sans', system-ui, sans-serif;
+    --bg: #080c14;
+    --panel: #0d1320;
+    --card: #111827;
+    --border: rgba(255,255,255,0.06);
+    --border2: rgba(255,255,255,0.12);
+    --green: #10e89a;
+    --green-dim: rgba(16,232,154,0.12);
+    --amber: #fbbf24;
+    --amber-dim: rgba(251,191,36,0.12);
+    --red: #f87171;
+    --red-dim: rgba(248,113,113,0.12);
+    --blue: #60a5fa;
+    --blue-dim: rgba(96,165,250,0.1);
+    --text: #eef2ff;
+    --muted: #64748b;
+    --muted2: #94a3b8;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
   }
 
-  /* Risk Meter */
-.risk-meter-bar {
-  position: relative;
-  height: 8px;
-  border-radius: 10px;
-  margin: 10px 0;
-background: linear-gradient(to right, #00d4aa, #f59e0b, #ff4d4d);
-}
-
-/* Arrow */
-.risk-arrow {
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  width: 0;
-  height: 0;
-  border-left: 6px solid transparent;
-  border-right: 6px solid transparent;
-  border-top: 10px solid white;
-  transform: translateX(-50%);
-  transition: left 0.4s ease;
-}
-
-/* Number */
-.risk-value {
-  font-size: 20px;
-  font-weight: 700;
-  font-family: var(--font);
-}
-
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
-
   body {
+    font-family: var(--sans);
     background: var(--bg);
     color: var(--text);
-    font-family: var(--sans);
-    height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
 
+  /* HEADER */
   header {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 20px;
-    border-bottom: 1px solid var(--border);
-    background: var(--surface);
-    z-index: 1000;
+    gap: 16px;
+    padding: 0 20px;
+    height: 52px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border2);
     flex-shrink: 0;
+    z-index: 900;
   }
 
   .logo {
     display: flex;
     align-items: center;
-    gap: 8px;
-    font-family: var(--font);
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--accent);
-    letter-spacing: 0.04em;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.02em;
   }
 
-  .logo-icon {
-    width: 28px; height: 28px;
-    background: var(--accent);
-    border-radius: 6px;
+  .logo-shield {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, var(--green), #059669);
+    border-radius: 8px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px;
+    font-size: 15px;
+    box-shadow: 0 0 20px rgba(16,232,154,0.35);
   }
 
-  .tagline {
-    font-size: 12px;
-    color: var(--muted);
+  .header-right {
     margin-left: auto;
-    font-family: var(--font);
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
-  .main {
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted2);
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 99px;
+    padding: 4px 10px;
+  }
+
+  .dot-live {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: blink 2s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* LAYOUT */
+  .layout {
     display: flex;
     flex: 1;
     overflow: hidden;
   }
 
+  /* SIDEBAR */
   .sidebar {
-    width: 320px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
+    width: 340px;
     flex-shrink: 0;
-    z-index: 500;
-  }
-
-  .panel {
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-.panel-title {
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #a5b4fc;
-  font-family: var(--font);
-  margin-bottom: 14px;
-}
-
-  .input-group {
+    background: var(--panel);
+    border-right: 1px solid var(--border2);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    overflow: hidden;
   }
 
-  .input-row {
+  .sidebar-scroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+  .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  /* SECTION */
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .section-head {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
     display: flex;
     align-items: center;
-    gap: 8px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
+    gap: 6px;
   }
 
-  .input-dot {
-    width: 8px; height: 8px;
+  .section-body {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* INPUTS */
+  .input-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    transition: border-color 0.2s;
+    position: relative;
+  }
+
+  .input-wrap:focus-within {
+    border-color: var(--green);
+    box-shadow: 0 0 0 2px rgba(16,232,154,0.08);
+  }
+
+  .input-pin {
+    width: 10px; height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
   }
 
-  .dot-green { background: var(--accent); }
-  .dot-red { background: var(--accent2); }
-
-  .input-row input {
+  .input-wrap input {
+    flex: 1;
     background: none;
     border: none;
     outline: none;
     color: var(--text);
     font-family: var(--sans);
     font-size: 13px;
-    width: 100%;
+    min-width: 0;
   }
 
-  .input-row input::placeholder { color: var(--muted); }
+  .input-wrap input::placeholder { color: var(--muted); }
 
-  .btn {
+  .input-clear {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+    display: none;
+  }
+
+  .input-wrap input:not(:placeholder-shown) ~ .input-clear { display: block; }
+
+  /* SUGGEST DROPDOWN */
+  .suggest-wrap { position: relative; }
+  .suggest-list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    z-index: 2000;
+    max-height: 180px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    display: none;
+  }
+
+  .suggest-list.open { display: block; }
+
+  .suggest-item {
+    padding: 9px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--muted2);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+
+  .suggest-item:last-child { border-bottom: none; }
+  .suggest-item:hover { background: var(--bg); color: var(--text); }
+  .suggest-item strong { color: var(--text); font-weight: 500; }
+
+  /* BUTTONS */
+  .btn-primary {
     width: 100%;
-    padding: 10px;
-    background: var(--accent);
-    color: #0a0e1a;
+    padding: 11px;
+    background: var(--green);
+    color: #04110a;
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 13px;
     border: none;
     border-radius: 8px;
-    font-family: var(--sans);
-    font-weight: 600;
-    font-size: 13px;
     cursor: pointer;
-    transition: opacity 0.15s;
-    margin-top: 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    letter-spacing: 0.01em;
   }
 
-  .btn:hover { opacity: 0.85; }
-  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary:hover:not(:disabled) {
+    background: #0ddda0;
+    box-shadow: 0 0 20px rgba(16,232,154,0.3);
+  }
 
-  .btn-secondary {
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-ghost {
+    width: 100%;
+    padding: 9px;
     background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text);
+    color: var(--muted2);
+    font-family: var(--sans);
+    font-size: 12px;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-ghost:hover { background: var(--bg); color: var(--text); }
+
+  /* SLIDERS */
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .slider-item {}
+
+  .slider-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+
+  .slider-label {
+    font-size: 12px;
+    color: var(--muted2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .slider-val {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
     font-weight: 500;
   }
 
-  .btn-secondary:hover { background: var(--surface2); }
-
-  .toggle-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .toggle-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 13px;
-  }
-
-  .toggle-label { color: var(--muted); }
-
-  .toggle {
-    width: 36px; height: 20px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    position: relative;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-
-  .toggle.on { background: var(--accent); border-color: var(--accent); }
-
-  .toggle::after {
-    content: '';
-    position: absolute;
-    top: 2px; left: 2px;
-    width: 14px; height: 14px;
-    background: white;
-    border-radius: 50%;
-    transition: left 0.2s;
-  }
-
-  .toggle.on::after { left: 18px; }
-
-  .risk-meter {
-    display: flex;
-    gap: 4px;
-    margin-top: 12px;
-  }
-
-  .risk-bar {
-    flex: 1;
+  input[type=range] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
     height: 4px;
     border-radius: 2px;
-    background: var(--surface2);
+    background: var(--bg);
+    outline: none;
+    cursor: pointer;
   }
 
-  .legend {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .legend-dot {
-    width: 10px; height: 10px;
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px; height: 16px;
     border-radius: 50%;
-    flex-shrink: 0;
+    border: 2px solid var(--panel);
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(0,0,0,0.4);
+    transition: transform 0.15s;
   }
+
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  .slider-accidents input[type=range]::-webkit-slider-thumb { background: var(--red); }
+  .slider-lighting input[type=range]::-webkit-slider-thumb { background: var(--amber); }
+  .slider-crime input[type=range]::-webkit-slider-thumb { background: var(--blue); }
+  .slider-flood input[type=range]::-webkit-slider-thumb { background: #a78bfa; }
+
+  /* ROUTE CARDS */
+  .route-list { display: flex; flex-direction: column; gap: 8px; }
 
   .route-card {
-    border-radius: 8px;
+    background: var(--bg);
     border: 1px solid var(--border);
+    border-radius: 10px;
     padding: 12px;
-    margin-bottom: 8px;
     cursor: pointer;
-    transition: border-color 0.15s, background 0.15s;
+    transition: all 0.2s;
   }
 
-  .route-card:hover { background: var(--surface2); }
-  .route-card.active { border-color: var(--accent); }
+  .route-card:hover { border-color: var(--border2); }
 
-  .route-card-header {
+  .route-card.selected-safe { border-color: var(--green); background: var(--green-dim); }
+  .route-card.selected-amber { border-color: var(--amber); background: var(--amber-dim); }
+  .route-card.selected-red { border-color: var(--red); background: var(--red-dim); }
+
+  .route-top {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -290,349 +375,434 @@ background: linear-gradient(to right, #00d4aa, #f59e0b, #ff4d4d);
 
   .route-name {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
   }
 
   .badge {
-    font-size: 10px;
-    padding: 2px 8px;
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
     border-radius: 99px;
-    font-family: var(--font);
-  }
-
-  .badge-safe { background: rgba(0,212,170,0.15); color: var(--accent); }
-  .badge-fast { background: rgba(245,158,11,0.15); color: var(--amber); }
-  .badge-dangerous { background: rgba(255,107,107,0.15); color: var(--accent2); }
-
-  .route-stats {
-    display: flex;
-    gap: 16px;
-  }
-
-  .route-stat {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .route-stat-value {
-    font-size: 14px;
     font-weight: 500;
-    font-family: var(--font);
   }
 
-  .route-stat-label {
-    font-size: 10px;
+  .badge-safe { background: var(--green-dim); color: var(--green); border: 1px solid rgba(16,232,154,0.2); }
+  .badge-moderate { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(251,191,36,0.2); }
+  .badge-risky { background: var(--red-dim); color: var(--red); border: 1px solid rgba(248,113,113,0.2); }
+
+  .route-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .metric {
+    background: var(--panel);
+    border-radius: 6px;
+    padding: 6px 8px;
+    text-align: center;
+  }
+
+  .metric-val {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .metric-label {
+    font-size: 9px;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.06em;
+    margin-top: 2px;
   }
 
-  .safety-score {
+  .safety-bar-wrap {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 8px;
+    gap: 8px;
   }
 
-  .score-bar-bg {
+  .safety-bar-bg {
     flex: 1;
-    height: 4px;
-    background: var(--surface2);
-    border-radius: 2px;
+    height: 5px;
+    background: var(--bg);
+    border-radius: 3px;
     overflow: hidden;
   }
 
-  .score-bar-fill {
+  .safety-bar-fill {
     height: 100%;
-    border-radius: 2px;
-    transition: width 0.5s ease;
+    border-radius: 3px;
+    transition: width 0.6s cubic-bezier(0.34,1.56,0.64,1);
   }
 
-  .score-label { font-size: 11px; font-family: var(--font); }
-
-  #map {
-    flex: 1;
-    z-index: 1;
+  .safety-pct {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    min-width: 32px;
+    text-align: right;
   }
 
-  .map-overlay {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    z-index: 999;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .overlay-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 12px;
-    backdrop-filter: blur(8px);
-  }
-
-  .status-pulse {
-    display: inline-block;
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    margin-right: 6px;
-    animation: pulse 2s infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: var(--surface);
-    border: 1px solid var(--accent);
-    border-radius: 8px;
-    padding: 10px 20px;
-    font-size: 13px;
-    z-index: 9999;
-    opacity: 0;
-    transition: opacity 0.3s;
-    color: var(--accent);
-    font-family: var(--font);
-  }
-
-  .toast.show { opacity: 1; }
-
-  .hotspot-count {
-    font-size: 22px;
-    font-weight: 600;
-    font-family: var(--font);
-    color: var(--accent2);
-  }
-
-  .stat-grid {
+  /* STATS GRID */
+  .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
-    margin-top: 8px;
   }
 
-.stat-box {
-  background: linear-gradient(145deg, var(--surface2), #0f172a);
-  border-radius: 10px;
-  padding: 14px;
-  border: 1px solid rgba(255,255,255,0.06);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.stat-box:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
-}
-
-.stat-box-value {
-  font-size: 24px;
-  font-weight: 700;
-  font-family: var(--font);
-  letter-spacing: 0.02em;
-}
-
-.stat-box-label {
-  font-size: 11px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  margin-top: 6px;
-}
-
-  .instruction-list {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-top: 8px;
-  }
-
-  .instruction-step {
-    display: flex;
-    gap: 10px;
-    align-items: flex-start;
-    font-size: 12px;
-    color: var(--muted);
-    padding: 6px 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .step-num {
-    font-family: var(--font);
-    color: var(--accent);
-    flex-shrink: 0;
-    width: 18px;
-    font-size: 11px;
-  }
-
-  .warning-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: rgba(255,107,107,0.1);
-    border: 1px solid rgba(255,107,107,0.2);
-    color: var(--accent2);
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 99px;
-    margin-top: 4px;
-  }
-
-  /* Leaflet dark overrides */
-  .leaflet-tile { filter: brightness(0.7) contrast(1.1) saturate(0.8) hue-rotate(195deg); }
-  .leaflet-control-attribution { display: none; }
-  .leaflet-popup-content-wrapper {
-    background: var(--surface);
-    color: var(--text);
+  .stat-card {
+    background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
-    font-family: var(--sans);
-    font-size: 12px;
+    padding: 10px 12px;
   }
-  .leaflet-popup-tip { background: var(--surface); }
+
+  .stat-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1;
+  }
+
+  .stat-lbl {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    margin-top: 3px;
+  }
+
+  /* LEGEND */
+  .legend { display: flex; flex-direction: column; gap: 7px; }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted2);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* MAP */
+  #map {
+    flex: 1;
+    background: #111;
+  }
+
+  .leaflet-tile {
+    filter: brightness(0.65) contrast(1.15) saturate(0.6) hue-rotate(200deg);
+  }
+
+  .leaflet-popup-content-wrapper {
+    background: var(--card) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border2) !important;
+    border-radius: 10px !important;
+    font-family: var(--sans) !important;
+    font-size: 12px !important;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.6) !important;
+  }
+
+  .leaflet-popup-tip { background: var(--card) !important; }
+  .leaflet-popup-close-button { color: var(--muted) !important; }
+
+  .map-wrap {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .map-hint {
+    position: absolute;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 800;
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 99px;
+    padding: 6px 16px;
+    font-size: 12px;
+    font-family: var(--mono);
+    color: var(--muted2);
+    pointer-events: none;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%) translateY(16px);
+    z-index: 9999;
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 99px;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-family: var(--mono);
+    color: var(--muted2);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .toast.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* SPINNER */
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(4,17,10,0.3);
+    border-top-color: #04110a;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* LOADING OVERLAY for map */
+  .map-loading {
+    position: absolute;
+    inset: 0;
+    background: rgba(8,12,20,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 700;
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--green);
+    gap: 12px;
+    flex-direction: column;
+  }
+
+  .map-loading.active { opacity: 1; pointer-events: all; }
+
+  .map-loading .big-spinner {
+    width: 36px; height: 36px;
+    border: 3px solid rgba(16,232,154,0.15);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* Risk legend at bottom of map */
+  .risk-summary {
+    position: absolute;
+    bottom: 30px; right: 14px;
+    z-index: 800;
+    background: var(--card);
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 11px;
+    backdrop-filter: blur(8px);
+    display: none;
+  }
+
+  .risk-summary.show { display: block; }
+  .risk-summary-title { font-family: var(--mono); color: var(--muted); margin-bottom: 8px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .empty-state {
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
+    padding: 12px 0;
+    line-height: 1.6;
+  }
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo">
-    <div class="logo-icon">🛡</div>
-    SafeRoute
+    <div class="logo-shield">🛡</div>
+    <span>Safe<span style="color:var(--green)">Route</span></span>
+    <span style="font-size:10px;color:var(--muted);font-family:var(--mono);font-weight:400;">BENGALURU</span>
   </div>
-  <span class="tagline">// safety-first navigation engine v1.0</span>
+  <div class="header-right">
+    <div class="status-pill">
+      <div class="dot-live"></div>
+      OSM + OSRM Live
+    </div>
+  </div>
 </header>
 
-<div class="main">
-  <div class="sidebar" id="sidebar">
+<div class="layout">
+  <div class="sidebar">
+    <div class="sidebar-scroll">
 
-    <!-- Input -->
-    <div class="panel">
-      <div class="panel-title">Route Input</div>
-      <div class="input-group">
-        <div class="input-row">
-          <div class="input-dot dot-green"></div>
-          <input id="origin" type="text" placeholder="Origin (click map or type)" />
+      <!-- INPUTS -->
+      <div class="section">
+        <div class="section-head">📍 Route Endpoints</div>
+        <div class="section-body">
+          <div class="suggest-wrap">
+            <div class="input-wrap">
+              <div class="input-pin" style="background:var(--green);box-shadow:0 0 6px var(--green)"></div>
+              <input id="originInput" type="text" placeholder="Origin — type or click map" autocomplete="off">
+              <button class="input-clear" onclick="clearOrigin()">×</button>
+            </div>
+            <div class="suggest-list" id="originSuggest"></div>
+          </div>
+          <div class="suggest-wrap">
+            <div class="input-wrap">
+              <div class="input-pin" style="background:var(--red);box-shadow:0 0 6px var(--red)"></div>
+              <input id="destInput" type="text" placeholder="Destination — type or click map" autocomplete="off">
+              <button class="input-clear" onclick="clearDest()">×</button>
+            </div>
+            <div class="suggest-list" id="destSuggest"></div>
+          </div>
+          <button class="btn-primary" id="routeBtn" onclick="findRoutes()" disabled>
+            <span id="routeBtnContent">🔍 Find Safe Routes</span>
+          </button>
+          <button class="btn-ghost" onclick="resetAll()">↺ Reset</button>
         </div>
-        <div class="input-row">
-          <div class="input-dot dot-red"></div>
-          <input id="dest" type="text" placeholder="Destination (click map)" />
-        </div>
-        <button class="btn" id="findRouteBtn" onclick="findRoutes()">Analyze Safe Routes →</button>
-        <button class="btn btn-secondary" onclick="resetMap()">Reset</button>
       </div>
+
+      <!-- RISK SLIDERS -->
+      <div class="section">
+        <div class="section-head">⚖️ Risk Interference Weights</div>
+        <div class="section-body">
+          <p style="font-size:11px;color:var(--muted);line-height:1.6;margin-bottom:4px;">
+            Drag sliders to tune how much each risk factor penalises route selection. Higher = route avoids it more aggressively.
+          </p>
+          <div class="slider-group">
+
+            <div class="slider-item slider-accidents">
+              <div class="slider-top">
+                <span class="slider-label">⚠️ Accident Hotspots</span>
+                <span class="slider-val" id="v-accidents" style="background:var(--red-dim);color:var(--red)">70%</span>
+              </div>
+              <input type="range" id="sl-accidents" min="0" max="100" value="70"
+                oninput="updateSlider('accidents',this.value)" style="accent-color:var(--red)">
+            </div>
+
+            <div class="slider-item slider-lighting">
+              <div class="slider-top">
+                <span class="slider-label">💡 Poor Lighting</span>
+                <span class="slider-val" id="v-lighting" style="background:var(--amber-dim);color:var(--amber)">50%</span>
+              </div>
+              <input type="range" id="sl-lighting" min="0" max="100" value="50"
+                oninput="updateSlider('lighting',this.value)" style="accent-color:var(--amber)">
+            </div>
+
+            <div class="slider-item slider-crime">
+              <div class="slider-top">
+                <span class="slider-label">🔒 Crime Zones</span>
+                <span class="slider-val" id="v-crime" style="background:var(--blue-dim);color:var(--blue)">40%</span>
+              </div>
+              <input type="range" id="sl-crime" min="0" max="100" value="40"
+                oninput="updateSlider('crime',this.value)" style="accent-color:var(--blue)">
+            </div>
+
+            <div class="slider-item slider-flood">
+              <div class="slider-top">
+                <span class="slider-label">🌊 Flood-Prone Roads</span>
+                <span class="slider-val" id="v-flood" style="background:rgba(167,139,250,0.12);color:#a78bfa">30%</span>
+              </div>
+              <input type="range" id="sl-flood" min="0" max="100" value="30"
+                oninput="updateSlider('flood',this.value)" style="accent-color:#a78bfa">
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- ROUTES -->
+      <div class="section" id="routesSection" style="display:none">
+        <div class="section-head">🗺 Route Options</div>
+        <div class="section-body">
+          <div class="route-list" id="routeList"></div>
+        </div>
+      </div>
+
+      <!-- AREA STATS -->
+      <div class="section">
+        <div class="section-head">📊 Area Risk Stats</div>
+        <div class="section-body">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-val" style="color:var(--red)">12</div>
+              <div class="stat-lbl">Accident Zones</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" style="color:var(--amber)">7</div>
+              <div class="stat-lbl">Dark Stretches</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" style="color:var(--green)">68%</div>
+              <div class="stat-lbl">Safe Road %</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" style="color:var(--muted2)" id="riskIdx">Med</div>
+              <div class="stat-lbl">Risk Index</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LEGEND -->
+      <div class="section">
+        <div class="section-head">🗂 Map Legend</div>
+        <div class="section-body">
+          <div class="legend">
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--green);box-shadow:0 0 6px var(--green)66"></div>
+              Recommended (safest) route
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--amber);box-shadow:0 0 6px var(--amber)66"></div>
+              Alternate (moderate risk) route
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--red);box-shadow:0 0 6px var(--red)66"></div>
+              Fastest (higher risk) route
+            </div>
+            <div class="legend-item">
+              <div class="legend-dot" style="background:var(--red);opacity:0.5"></div>
+              Accident hotspot radius
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
-
-    <!-- Stats -->
-    <div class="panel">
-      <div class="panel-title">Area Intelligence</div>
-      <div class="stat-grid">
-        <div class="stat-box">
-          <div class="stat-box-value" style="color:var(--accent2)" id="hotspot-count">12</div>
-          <div class="stat-box-label">Accident Zones</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-box-value" style="color:var(--amber)" id="dark-count">7</div>
-          <div class="stat-box-label">Dark Stretches</div>
-        </div>
-        <div class="stat-box">
-          <div class="stat-box-value" style="color:var(--accent)" id="safe-pct">68%</div>
-          <div class="stat-box-label">Safe Road %</div>
-        </div>
-        <div class="stat-box">
-  <div class="stat-box-label">Risk Index</div>
-
-  <div class="risk-meter-bar">
-    <div class="risk-arrow" id="risk-arrow"></div>
   </div>
 
-  <div class="risk-value" id="risk-idx">6</div>
-</div>
-      </div>
-    </div>
-
-    <!-- Safety Filters -->
-    <div class="panel">
-      <div class="panel-title">Safety Filters</div>
-      <div class="toggle-group">
-        <div class="toggle-item">
-          <span class="toggle-label">Avoid accident hotspots</span>
-          <div class="toggle on" id="tog-accidents" onclick="toggleFilter(this)"></div>
-        </div>
-        <div class="toggle-item">
-          <span class="toggle-label">Prefer lit streets</span>
-          <div class="toggle on" id="tog-lighting" onclick="toggleFilter(this)"></div>
-        </div>
-        <div class="toggle-item">
-          <span class="toggle-label">Avoid high-crime zones</span>
-          <div class="toggle" id="tog-crime" onclick="toggleFilter(this)"></div>
-        </div>
-        <div class="toggle-item">
-          <span class="toggle-label">Avoid flood-prone roads</span>
-          <div class="toggle" id="tog-flood" onclick="toggleFilter(this)"></div>
-        </div>
-      </div>
-    </div>
-
-
-
-    <!-- Legend -->
-    <div class="panel">
-      <div class="panel-title">Map Legend</div>
-      <div class="legend">
-        <div class="legend-item">
-          <div class="legend-dot" style="background:#ff6b6b; box-shadow: 0 0 6px #ff6b6b99"></div>
-          Accident hotspot (high risk)
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:#f59e0b; box-shadow: 0 0 6px #f59e0b99"></div>
-          Poor lighting / moderate risk
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:#00d4aa; box-shadow: 0 0 6px #00d4aa99"></div>
-          Safe route (recommended)
-        </div>
-        <div class="legend-item">
-          <div class="legend-dot" style="background:#8896b3"></div>
-          Standard route (not recommended)
-        </div>
-      </div>
-    </div>
-
-    <!-- Routes appear here -->
-    <div class="panel" id="routes-panel" style="display:none">
-      <div class="panel-title">Route Options</div>
-      <div id="route-cards"></div>
-    </div>
-
-    <!-- Instructions -->
-    <div class="panel" id="instructions-panel" style="display:none">
-      <div class="panel-title">Turn-by-turn (safe route)</div>
-      <div class="instruction-list" id="instructions"></div>
-    </div>
-
-  </div>
-
-  <!-- Map -->
-  <div style="flex:1; position:relative;">
+  <!-- MAP -->
+  <div class="map-wrap">
     <div id="map"></div>
-    <div class="map-overlay">
-      <div class="overlay-card">
-        <span class="status-pulse"></span>
-        <span style="color:var(--muted)">Live safety data</span>
-      </div>
-      <div class="overlay-card" id="click-hint" style="color:var(--muted)">
-        Click map to set origin → destination
-      </div>
+    <div class="map-hint" id="mapHint">Click map to set 📍 Origin</div>
+    <div class="map-loading" id="mapLoading">
+      <div class="big-spinner"></div>
+      <span id="loadingMsg">Calculating routes…</span>
+    </div>
+    <div class="risk-summary" id="riskSummary">
+      <div class="risk-summary-title">Selected Route Risk</div>
+      <div id="riskSummaryContent"></div>
     </div>
   </div>
 </div>
@@ -640,361 +810,531 @@ background: linear-gradient(to right, #00d4aa, #f59e0b, #ff4d4d);
 <div class="toast" id="toast"></div>
 
 <script>
+// ─── STATE ───────────────────────────────────────────────────────────
+const state = {
+  map: null,
+  origin: null,   // { lat, lng, label }
+  dest: null,     // { lat, lng, label }
+  clickStep: 'origin',
+  layers: { origin: null, dest: null, routes: [], hotspots: [] },
+  routes: [],
+  selectedRoute: 0,
+  geocodeCache: {},
+  sliders: { accidents: 70, lighting: 50, crime: 40, flood: 30 }
+};
 
-    function updateRiskIndex(value) {
-  const arrow = document.getElementById('risk-arrow');
-  const label = document.getElementById('risk-idx');
+// Known risk zones for Bengaluru (representative data)
+const RISK_ZONES = [
+  { lat: 12.9780, lng: 77.5910, type: 'accident', severity: 9, name: 'Silk Board Junction', count: 47 },
+  { lat: 12.9716, lng: 77.5948, type: 'accident', severity: 7, name: 'KR Circle', count: 31 },
+  { lat: 12.9592, lng: 77.6974, type: 'accident', severity: 8, name: 'Marathahalli Bridge', count: 42 },
+  { lat: 12.9352, lng: 77.6245, type: 'accident', severity: 6, name: 'Koramangala 5th Block', count: 18 },
+  { lat: 13.0358, lng: 77.5970, type: 'accident', severity: 7, name: 'Hebbal Flyover', count: 29 },
+  { lat: 12.9849, lng: 77.5751, type: 'accident', severity: 5, name: 'Mehkri Circle', count: 14 },
+  { lat: 12.9630, lng: 77.5855, type: 'accident', severity: 6, name: 'Richmond Circle', count: 22 },
+  { lat: 13.0100, lng: 77.6500, type: 'flood', name: 'Whitefield Underpass' },
+  { lat: 12.9236, lng: 77.6728, type: 'flood', name: 'Sarjapur Road Low Point' },
+  { lat: 12.9550, lng: 77.7000, type: 'crime', name: 'Varthur Night Zone' },
+  { lat: 12.9900, lng: 77.5650, type: 'lighting', name: 'Sadashivanagar Dark Stretch' },
+  { lat: 12.9450, lng: 77.5700, type: 'lighting', name: 'Jayanagar 9th Block' },
+];
 
-  value = Math.max(1, Math.min(10, value)); // keep between 1–10
-
-  const percent = (value - 1) / 9 * 100;
-
-  arrow.style.left = percent + '%';
-  label.textContent = value;
-
-if (value <= 3) label.style.color = '#00d4aa';   // LOW risk → green
-else if (value <= 6) label.style.color = '#f59e0b'; // medium → amber
-else label.style.color = '#ff4d4d';  // HIGH risk → red
-}
-const BENGALURU = [12.9716, 77.5946];
-
-const map = L.map('map', {
-  center: BENGALURU,
-  zoom: 13,
-  zoomControl: false
+// ─── INIT ─────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  setupInputs();
+  renderHotspots();
 });
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-// Simulated accident hotspots (Bengaluru area coordinates)
-const HOTSPOTS = [
-  { lat: 12.9780, lng: 77.5910, severity: 9, name: "Silk Board Junction", accidents: 47 },
-  { lat: 12.9716, lng: 77.5948, severity: 7, name: "KR Circle", accidents: 31 },
-  { lat: 12.9592, lng: 77.6974, severity: 8, name: "Marathahalli Bridge", accidents: 42 },
-  { lat: 12.9352, lng: 77.6245, severity: 6, name: "Bommanahalli Signal", accidents: 22 },
-  { lat: 13.0120, lng: 77.5550, severity: 9, name: "Mekhri Circle", accidents: 55 },
-  { lat: 12.9850, lng: 77.7250, stringify: 5, name: "Whitefield Cross", accidents: 18 },
-  { lat: 12.9450, lng: 77.5450, severity: 7, name: "Banashankari", accidents: 33 },
-  { lat: 13.0300, lng: 77.5800, severity: 6, name: "Hebbal Flyover", accidents: 27 },
-  { lat: 12.9200, lng: 77.6700, severity: 8, name: "Electronic City Toll", accidents: 38 },
-  { lat: 12.9950, lng: 77.6100, severity: 5, name: "Indiranagar 100ft", accidents: 15 },
-  { lat: 12.9650, lng: 77.7000, severity: 7, name: "ITPL Signal", accidents: 29 },
-  { lat: 12.9000, lng: 77.5850, severity: 6, name: "JP Nagar 7th Phase", accidents: 21 },
-];
-
-const DARK_ZONES = [
-  { lat: 12.9550, lng: 77.6200, name: "Domlur Underpass" },
-  { lat: 13.0200, lng: 77.6400, name: "Kadugodi Road" },
-  { lat: 12.9100, lng: 77.6500, name: "Harlur Road" },
-  { lat: 12.9800, lng: 77.5700, name: "Yeshwanthpur Lane" },
-  { lat: 12.9400, lng: 77.5300, name: "Kanakapura Rd stretch" },
-  { lat: 13.0450, lng: 77.5950, name: "Yelahanka Old Town" },
-  { lat: 12.9250, lng: 77.5600, name: "Uttarahalli Road" },
-];
-
-let hotspotMarkers = [], darkMarkers = [], routeLayers = [];
-let originMarker = null, destMarker = null;
-let originLatLng = null, destLatLng = null;
-let clickMode = 'origin';
-
-function createPulseIcon(color, size = 14) {
-  return L.divIcon({
-    html: `<div style="
-      width:${size}px;height:${size}px;
-      background:${color};
-      border-radius:50%;
-      border:2px solid white;
-      box-shadow:0 0 8px ${color}99, 0 0 20px ${color}44;
-    "></div>`,
-    className: '',
-    iconSize: [size, size],
-    iconAnchor: [size/2, size/2],
+function initMap() {
+  state.map = L.map('map', {
+    center: [12.9716, 77.5946],
+    zoom: 12,
+    zoomControl: false
   });
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | SafeRoute'
+  }).addTo(state.map);
+
+  L.control.zoom({ position: 'bottomright' }).addTo(state.map);
+
+  state.map.on('click', onMapClick);
 }
 
 function renderHotspots() {
-  hotspotMarkers.forEach(m => map.removeLayer(m));
-  hotspotMarkers = [];
+  state.layers.hotspots.forEach(l => state.map.removeLayer(l));
+  state.layers.hotspots = [];
 
-  HOTSPOTS.forEach(h => {
-    const s = h.severity || 6;
-    const color = s >= 8 ? '#ff6b6b' : s >= 6 ? '#f59e0b' : '#ffd700';
-    const r = 8 + s * 3;
+  RISK_ZONES.forEach(z => {
+    if (z.type !== 'accident') return;
+    const r = state.sliders.accidents;
+    const color = z.severity >= 8 ? '#f87171' : '#fbbf24';
+    const radius = 100 + z.severity * 25 + r * 1.5;
 
-    const circle = L.circle([h.lat, h.lng], {
-      radius: 120 + s * 30,
-      color: color,
-      fillColor: color,
-      fillOpacity: 0.18,
-      weight: 1,
-      opacity: 0.5,
-    }).addTo(map);
+    const circle = L.circle([z.lat, z.lng], {
+      radius,
+      color, fillColor: color,
+      fillOpacity: 0.12 + (r / 100) * 0.1,
+      weight: 1, opacity: 0.5
+    }).bindPopup(popupHtml(z)).addTo(state.map);
 
-    const m = L.marker([h.lat, h.lng], { icon: createPulseIcon(color, 10 + s) })
-      .addTo(map)
-      .bindPopup(`
-        <div style="font-family:'DM Sans',sans-serif;">
-          <div style="font-weight:600;font-size:13px;margin-bottom:6px;">⚠️ ${h.name}</div>
-          <div style="color:#8896b3;font-size:11px;">Severity: <span style="color:${color}">${s}/10</span></div>
-          <div style="color:#8896b3;font-size:11px;">Accidents (2023): <strong style="color:#f0f4ff">${h.accidents}</strong></div>
-          <div style="color:#ff6b6b;font-size:11px;margin-top:4px;">⛔ Route avoids this zone</div>
-        </div>
-      `);
+    const marker = L.marker([z.lat, z.lng], {
+      icon: pulseIcon(color, 10 + z.severity)
+    }).bindPopup(popupHtml(z)).addTo(state.map);
 
-    hotspotMarkers.push(m, circle);
+    state.layers.hotspots.push(circle, marker);
   });
 }
 
-function renderDarkZones() {
-  darkMarkers.forEach(m => map.removeLayer(m));
-  darkMarkers = [];
+function popupHtml(z) {
+  const colors = { accident: '#f87171', flood: '#60a5fa', crime: '#a78bfa', lighting: '#fbbf24' };
+  const c = colors[z.type] || '#94a3b8';
+  return `
+    <div style="min-width:180px;font-family:'Space Grotesk',sans-serif;">
+      <div style="font-weight:600;font-size:13px;color:${c};margin-bottom:6px">
+        ${z.type === 'accident' ? '⚠️' : z.type === 'flood' ? '🌊' : z.type === 'crime' ? '🔒' : '💡'} ${z.name}
+      </div>
+      ${z.severity ? `<div style="color:#64748b;font-size:11px;">Severity: <strong style="color:${c}">${z.severity}/10</strong></div>` : ''}
+      ${z.count ? `<div style="color:#64748b;font-size:11px;">Incidents: <strong>${z.count}</strong></div>` : ''}
+      <div style="color:${c};font-size:11px;margin-top:6px;font-weight:500;">
+        ⛔ Routes penalised near this zone
+      </div>
+    </div>`;
+}
 
-  DARK_ZONES.forEach(d => {
-    const m = L.marker([d.lat, d.lng], { icon: createPulseIcon('#f59e0b', 10) })
-      .addTo(map)
-      .bindPopup(`
-        <div style="font-family:'DM Sans',sans-serif;">
-          <div style="font-weight:600;font-size:13px;margin-bottom:6px;">🌑 ${d.name}</div>
-          <div style="color:#f59e0b;font-size:11px;">Poor street lighting detected</div>
-        </div>
-      `);
-    darkMarkers.push(m);
+function pulseIcon(color, size = 12) {
+  return L.divIcon({
+    html: `<div style="
+      width:${size}px;height:${size}px;background:${color};
+      border-radius:50%;border:2px solid rgba(255,255,255,0.7);
+      box-shadow:0 0 10px ${color}88;
+    "></div>`,
+    className: '', iconSize: [size, size], iconAnchor: [size/2, size/2]
   });
 }
 
-function showToast(msg, dur = 2500) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), dur);
-}
-
-map.on('click', (e) => {
+// ─── MAP CLICK ────────────────────────────────────────────────────────
+function onMapClick(e) {
   const { lat, lng } = e.latlng;
-
-  if (clickMode === 'origin') {
-    if (originMarker) map.removeLayer(originMarker);
-    originLatLng = [lat, lng];
-    originMarker = L.marker([lat, lng], {
-      icon: L.divIcon({
-        html: `<div style="width:16px;height:16px;background:#00d4aa;border-radius:50%;border:3px solid white;box-shadow:0 0 12px #00d4aa99;"></div>`,
-        className: '', iconSize: [16,16], iconAnchor: [8,8]
-      })
-    }).addTo(map).bindPopup('Origin').openPopup();
-    document.getElementById('origin').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    clickMode = 'dest';
-    document.getElementById('click-hint').innerHTML = 'Now click to set <strong>destination</strong>';
-    showToast('Origin set. Click to set destination.');
+  if (state.clickStep === 'origin') {
+    placeOrigin(lat, lng, `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+    revGeocode(lat, lng, 'origin');
+    state.clickStep = 'dest';
+    setHint('Click map to set 🔴 Destination');
   } else {
-    if (destMarker) map.removeLayer(destMarker);
-    destLatLng = [lat, lng];
-    destMarker = L.marker([lat, lng], {
-      icon: L.divIcon({
-        html: `<div style="width:16px;height:16px;background:#ff6b6b;border-radius:50%;border:3px solid white;box-shadow:0 0 12px #ff6b6b99;"></div>`,
-        className: '', iconSize: [16,16], iconAnchor: [8,8]
-      })
-    }).addTo(map).bindPopup('Destination').openPopup();
-    document.getElementById('dest').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    clickMode = 'origin';
-    document.getElementById('click-hint').textContent = 'Both points set!';
-    showToast('Destination set. Click "Analyze Safe Routes" →');
+    placeDest(lat, lng, `${lat.toFixed(5)}, ${lng.toFixed(5)}`);
+    revGeocode(lat, lng, 'dest');
+    state.clickStep = 'origin';
+    setHint('Both points set — click "Find Safe Routes"');
   }
-});
-
-function computeSafetyScore(path, avoidHotspots) {
-  if (!avoidHotspots) return Math.floor(Math.random() * 30 + 35);
-  let score = 95;
-  HOTSPOTS.forEach(h => {
-    path.forEach(pt => {
-      const d = Math.sqrt(Math.pow(pt[0]-h.lat,2)+Math.pow(pt[1]-h.lng,2));
-      if (d < 0.015) score -= (h.severity || 5) * 1.2;
-    });
-  });
-  return Math.max(10, Math.min(98, Math.round(score)));
+  checkRouteReady();
 }
 
-function generateRoute(origin, dest, offset = 0, safeAlt = false) {
-  const lats = [origin[0], origin[0] + (dest[0]-origin[0])*0.25 + offset*0.03,
-                origin[0] + (dest[0]-origin[0])*0.5 + offset*0.02,
-                origin[0] + (dest[0]-origin[0])*0.75 + offset*0.01, dest[0]];
-  const lngs = [origin[1], origin[1] + (dest[1]-origin[1])*0.25 + (safeAlt ? -offset*0.02 : offset*0.015),
-                origin[1] + (dest[1]-origin[1])*0.5,
-                origin[1] + (dest[1]-origin[1])*0.75 + offset*0.01, dest[1]];
-  return lats.map((l,i) => [l, lngs[i]]);
-}
-
-function distKm(a, b) {
-  const R = 6371;
-  const dLat = (b[0]-a[0]) * Math.PI/180;
-  const dLng = (b[1]-a[1]) * Math.PI/180;
-  const x = Math.sin(dLat/2)**2 + Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
-  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
-}
-
-function findRoutes() {
-  if (!originLatLng || !destLatLng) {
-    showToast('Please set origin and destination on the map first.');
-    return;
-  }
-
-  routeLayers.forEach(l => map.removeLayer(l));
-  routeLayers = [];
-
-  const avoidHotspots = document.getElementById('tog-accidents').classList.contains('on');
-  const preferLit = document.getElementById('tog-lighting').classList.contains('on');
-
-  const safeRoute = generateRoute(originLatLng, destLatLng, 1, true);
-  const fastRoute = generateRoute(originLatLng, destLatLng, 0, false);
-  const altRoute  = generateRoute(originLatLng, destLatLng, -1, false);
-
-  const baseDist = distKm(originLatLng, destLatLng);
-
-  const routes = [
-    {
-      name: "SafeRoute (recommended)",
-      path: safeRoute,
-      color: '#00d4aa',
-      weight: 5,
-      dist: (baseDist * 1.12).toFixed(1),
-      time: Math.round(baseDist * 1.12 * 3.2),
-      safeScore: computeSafetyScore(safeRoute, true),
-      badge: 'badge-safe',
-      badgeText: 'SAFEST',
-      hotspots: 0,
-    },
-    {
-      name: "Fastest Route",
-      path: fastRoute,
-      color: '#f59e0b',
-      weight: 3,
-      dist: baseDist.toFixed(1),
-      time: Math.round(baseDist * 2.8),
-      safeScore: computeSafetyScore(fastRoute, false),
-      badge: 'badge-fast',
-      badgeText: 'FASTEST',
-      hotspots: Math.floor(Math.random()*3)+2,
-    },
-    {
-      name: "Alternate Route",
-      path: altRoute,
-      color: '#8896b3',
-      weight: 2,
-      dist: (baseDist * 1.05).toFixed(1),
-      time: Math.round(baseDist * 1.05 * 3.0),
-      safeScore: computeSafetyScore(altRoute, false),
-      badge: 'badge-dangerous',
-      badgeText: 'RISKY',
-      hotspots: Math.floor(Math.random()*2)+3,
+async function revGeocode(lat, lng, which) {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const d = await r.json();
+    const label = d.display_name?.split(',').slice(0, 2).join(', ') || `${lat.toFixed(4)},${lng.toFixed(4)}`;
+    if (which === 'origin') {
+      document.getElementById('originInput').value = label;
+      state.origin.label = label;
+    } else {
+      document.getElementById('destInput').value = label;
+      state.dest.label = label;
     }
-  ];
+  } catch {}
+}
 
-  routes.forEach((r, i) => {
-    const dash = i === 0 ? null : '8 4';
-    const line = L.polyline(r.path, {
-      color: r.color,
-      weight: r.weight,
-      opacity: i === 0 ? 0.9 : 0.55,
-      dashArray: dash
-    }).addTo(map);
-    routeLayers.push(line);
+function placeOrigin(lat, lng, label) {
+  if (state.layers.origin) state.map.removeLayer(state.layers.origin);
+  state.origin = { lat, lng, label };
+  state.layers.origin = L.marker([lat, lng], {
+    icon: L.divIcon({
+      html: `<div style="width:18px;height:18px;background:#10e89a;border-radius:50%;border:3px solid white;box-shadow:0 0 14px #10e89aaa;"></div>`,
+      className: '', iconSize: [18,18], iconAnchor: [9,9]
+    })
+  }).bindPopup(`<b>Origin</b><br><small>${label}</small>`).addTo(state.map);
+  document.getElementById('originInput').value = label;
+}
+
+function placeDest(lat, lng, label) {
+  if (state.layers.dest) state.map.removeLayer(state.layers.dest);
+  state.dest = { lat, lng, label };
+  state.layers.dest = L.marker([lat, lng], {
+    icon: L.divIcon({
+      html: `<div style="width:18px;height:18px;background:#f87171;border-radius:50%;border:3px solid white;box-shadow:0 0 14px #f87171aa;"></div>`,
+      className: '', iconSize: [18,18], iconAnchor: [9,9]
+    })
+  }).bindPopup(`<b>Destination</b><br><small>${label}</small>`).addTo(state.map);
+  document.getElementById('destInput').value = label;
+}
+
+function checkRouteReady() {
+  document.getElementById('routeBtn').disabled = !(state.origin && state.dest);
+}
+
+// ─── GEOCODE SEARCH ───────────────────────────────────────────────────
+function setupInputs() {
+  setupGeoInput('originInput', 'originSuggest', 'origin');
+  setupGeoInput('destInput', 'destSuggest', 'dest');
+}
+
+function setupGeoInput(inputId, listId, which) {
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  let timer;
+
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 3) { list.classList.remove('open'); return; }
+    timer = setTimeout(() => geocodeSearch(q, list, which), 400);
   });
 
-  map.fitBounds(L.latLngBounds([originLatLng, destLatLng]).pad(0.2));
+  input.addEventListener('blur', () => {
+    setTimeout(() => list.classList.remove('open'), 200);
+  });
+}
 
-  const panel = document.getElementById('routes-panel');
-  panel.style.display = '';
-  const cards = document.getElementById('route-cards');
-  cards.innerHTML = '';
+async function geocodeSearch(q, list, which) {
+  try {
+    const r = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q + ', Bengaluru')}&format=json&limit=5&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } }
+    );
+    const results = await r.json();
+    list.innerHTML = '';
+    if (!results.length) { list.classList.remove('open'); return; }
 
-  routes.forEach((r, i) => {
-    const scoreColor = r.safeScore >= 75 ? '#00d4aa' : r.safeScore >= 50 ? '#f59e0b' : '#ff6b6b';
-    const hotspotWarn = r.hotspots > 0 ? `<div class="warning-chip">⚠ ${r.hotspots} hotspot${r.hotspots>1?'s':''} crossed</div>` : '';
-    cards.innerHTML += `
-      <div class="route-card ${i===0?'active':''}" onclick="selectRoute(${i})">
-        <div class="route-card-header">
-          <span class="route-name">${r.name}</span>
-          <span class="badge ${r.badge}">${r.badgeText}</span>
-        </div>
-        <div class="route-stats">
-          <div class="route-stat">
-            <span class="route-stat-value">${r.dist} km</span>
-            <span class="route-stat-label">Distance</span>
-          </div>
-          <div class="route-stat">
-            <span class="route-stat-value">${r.time} min</span>
-            <span class="route-stat-label">Est. Time</span>
-          </div>
-          <div class="route-stat">
-            <span class="route-stat-value" style="color:${scoreColor}">${r.safeScore}</span>
-            <span class="route-stat-label">Safety/100</span>
-          </div>
-        </div>
-        <div class="safety-score">
-          <div class="score-bar-bg">
-            <div class="score-bar-fill" style="width:${r.safeScore}%;background:${scoreColor}"></div>
-          </div>
-          <span class="score-label" style="color:${scoreColor}">${r.safeScore}%</span>
-        </div>
-        ${hotspotWarn}
-      </div>
-    `;
+    results.forEach(item => {
+      const parts = item.display_name.split(',');
+      const main = parts[0].trim();
+      const sub = parts.slice(1, 3).join(',').trim();
+      const div = document.createElement('div');
+      div.className = 'suggest-item';
+      div.innerHTML = `<strong>${main}</strong>, ${sub}`;
+      div.onclick = () => {
+        const lat = parseFloat(item.lat);
+        const lng = parseFloat(item.lon);
+        const label = `${main}, ${sub}`;
+        if (which === 'origin') {
+          placeOrigin(lat, lng, label);
+          state.map.setView([lat, lng], 14);
+        } else {
+          placeDest(lat, lng, label);
+          state.map.setView([lat, lng], 14);
+        }
+        list.classList.remove('open');
+        checkRouteReady();
+        toast(`${which === 'origin' ? 'Origin' : 'Destination'} set: ${main}`);
+      };
+      list.appendChild(div);
+    });
+
+    list.classList.add('open');
+  } catch (e) {
+    console.warn('Geocode error', e);
+  }
+}
+
+// ─── ROUTE CALCULATION ────────────────────────────────────────────────
+async function findRoutes() {
+  if (!state.origin || !state.dest) return;
+
+  showLoading('Querying OSRM routing engine…');
+
+  const o = state.origin, d = state.dest;
+
+  try {
+    // OSRM returns up to 3 alternative routes
+    const url = `https://router.project-osrm.org/route/v1/driving/` +
+      `${o.lng},${o.lat};${d.lng},${d.lat}` +
+      `?overview=full&geometries=geojson&alternatives=true&steps=false`;
+
+    const r = await fetch(url);
+    const data = await r.json();
+
+    if (data.code !== 'Ok' || !data.routes?.length) {
+      toast('⚠️ OSRM could not find a route here');
+      hideLoading();
+      return;
+    }
+
+    // Score each route
+    state.routes = data.routes.map((route, i) => {
+      const coords = route.geometry.coordinates.map(c => [c[1], c[0]]);
+      const score = computeSafetyScore(coords);
+      const dist = (route.distance / 1000).toFixed(1);
+      const dur = Math.round(route.duration / 60);
+      return {
+        index: i,
+        coords,
+        distance: dist,
+        duration: dur,
+        safetyScore: score,
+        raw: route
+      };
+    });
+
+    // Sort: best safety first
+    state.routes.sort((a, b) => b.safetyScore - a.safetyScore);
+
+    // Name & color
+    const configs = [
+      { name: 'SafeRoute ★', color: '#10e89a', cls: 'badge-safe', sel: 'selected-safe' },
+      { name: 'Alternate Route', color: '#fbbf24', cls: 'badge-moderate', sel: 'selected-amber' },
+      { name: 'Fastest Route', color: '#f87171', cls: 'badge-risky', sel: 'selected-red' }
+    ];
+
+    state.routes.forEach((rt, i) => {
+      const cfg = configs[Math.min(i, 2)];
+      rt.name = cfg.name;
+      rt.color = cfg.color;
+      rt.badgeCls = cfg.cls;
+      rt.selCls = cfg.sel;
+      rt.label = i === 0 ? 'SAFEST' : i === 1 ? 'ALTERNATE' : 'FASTEST';
+    });
+
+    renderRoutesOnMap();
+    renderRouteCards();
+    document.getElementById('routesSection').style.display = 'block';
+    toast(`✅ ${state.routes.length} route${state.routes.length > 1 ? 's' : ''} analysed!`);
+
+    // Fit map
+    const allPts = state.routes.flatMap(r => r.coords);
+    state.map.fitBounds(L.latLngBounds(allPts).pad(0.15));
+
+  } catch (err) {
+    console.error(err);
+    toast('⚠️ Routing failed — check connection');
+  } finally {
+    hideLoading();
+  }
+}
+
+// ─── SAFETY SCORE ─────────────────────────────────────────────────────
+function computeSafetyScore(coords) {
+  const w = state.sliders;
+  let penalty = 0;
+  const total_w = w.accidents + w.lighting + w.crime + w.flood;
+
+  RISK_ZONES.forEach(zone => {
+    const closest = coords.reduce((best, c) => {
+      const d = haversine(c[0], c[1], zone.lat, zone.lng);
+      return d < best ? d : best;
+    }, Infinity);
+
+    const influence = 0.3; // km radius of influence
+    if (closest < influence) {
+      const factor = 1 - (closest / influence);
+      const zoneWeight = (
+        zone.type === 'accident' ? (w.accidents / 100) * (zone.severity || 5) / 10 :
+        zone.type === 'lighting' ? (w.lighting / 100) * 0.5 :
+        zone.type === 'crime'    ? (w.crime / 100) * 0.5 :
+        zone.type === 'flood'    ? (w.flood / 100) * 0.4 : 0
+      );
+      penalty += factor * zoneWeight * 25;
+    }
   });
 
-  // Turn-by-turn instructions for safe route
-  const instrPanel = document.getElementById('instructions-panel');
-  instrPanel.style.display = '';
-  const instrEl = document.getElementById('instructions');
-  const steps = [
-    { icon: '↗', text: 'Head northeast on Main Road', note: null },
-    { icon: '→', text: 'Turn right at Signal Point (well-lit)', note: null },
-    { icon: '↖', text: `Continue through ${avoidHotspots ? 'safe corridor (hotspot avoided)' : 'junction area'}` , note: avoidHotspots ? 'Rerouted away from accident zone' : null },
-    { icon: '→', text: preferLit ? 'Stay on Boulevard (street-lit route)' : 'Turn onto Boulevard', note: null },
-    { icon: '⬆', text: 'Straight ahead to destination', note: null },
-  ];
+  return Math.max(0, Math.min(100, Math.round(100 - penalty)));
+}
 
-  instrEl.innerHTML = steps.map((s, i) => `
-    <div class="instruction-step">
-      <span class="step-num">${s.icon}</span>
-      <div>
-        <div>${s.text}</div>
-        ${s.note ? `<div class="warning-chip" style="background:rgba(0,212,170,0.1);border-color:rgba(0,212,170,0.2);color:#00d4aa">${s.note}</div>` : ''}
-      </div>
-    </div>
-  `).join('');
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
 
-  showToast('Safe route calculated. 0 hotspots on recommended path.');
+// ─── RENDER ROUTES ────────────────────────────────────────────────────
+function renderRoutesOnMap() {
+  state.layers.routes.forEach(l => state.map.removeLayer(l));
+  state.layers.routes = [];
+
+  // Draw non-selected routes (dashed, thinner)
+  state.routes.slice(1).reverse().forEach(rt => {
+    const line = L.polyline(rt.coords, {
+      color: rt.color, weight: 3.5, opacity: 0.55, dashArray: '8 6'
+    }).addTo(state.map);
+    state.layers.routes.push(line);
+  });
+
+  // Draw best route on top
+  const best = state.routes[0];
+  const line = L.polyline(best.coords, {
+    color: best.color, weight: 6, opacity: 0.95
+  }).addTo(state.map);
+  state.layers.routes.push(line);
+
+  selectRoute(0);
 }
 
 function selectRoute(idx) {
+  state.selectedRoute = idx;
+  state.layers.routes.forEach(l => state.map.removeLayer(l));
+  state.layers.routes = [];
+
+  state.routes.forEach((rt, i) => {
+    const isSelected = i === idx;
+    const line = L.polyline(rt.coords, {
+      color: rt.color,
+      weight: isSelected ? 6 : 3.5,
+      opacity: isSelected ? 0.95 : 0.4,
+      dashArray: isSelected ? null : '8 6'
+    }).addTo(state.map);
+    state.layers.routes.push(line);
+  });
+
+  // Update cards
   document.querySelectorAll('.route-card').forEach((c, i) => {
-    c.classList.toggle('active', i === idx);
+    c.className = 'route-card' + (i === idx ? ' ' + state.routes[i].selCls : '');
+  });
+
+  // Risk summary
+  const rt = state.routes[idx];
+  const zones = countZonesCrossed(rt.coords);
+  document.getElementById('riskSummary').classList.add('show');
+  document.getElementById('riskSummaryContent').innerHTML = `
+    <div style="display:flex;gap:12px;font-size:11px;font-family:'JetBrains Mono',monospace;">
+      <span style="color:var(--red)">⚠️ ${zones.accident} accident</span>
+      <span style="color:var(--amber)">💡 ${zones.lighting} dark</span>
+      <span style="color:#a78bfa">🌊 ${zones.flood} flood</span>
+    </div>`;
+
+  updateRiskIndex(rt.safetyScore);
+}
+
+function countZonesCrossed(coords) {
+  const counts = { accident: 0, lighting: 0, flood: 0, crime: 0 };
+  RISK_ZONES.forEach(z => {
+    const closest = coords.reduce((b, c) => Math.min(b, haversine(c[0],c[1],z.lat,z.lng)), Infinity);
+    if (closest < 0.3) counts[z.type] = (counts[z.type] || 0) + 1;
+  });
+  return counts;
+}
+
+function updateRiskIndex(score) {
+  const el = document.getElementById('riskIdx');
+  if (score >= 80) { el.textContent = 'Low'; el.style.color = 'var(--green)'; }
+  else if (score >= 55) { el.textContent = 'Med'; el.style.color = 'var(--amber)'; }
+  else { el.textContent = 'High'; el.style.color = 'var(--red)'; }
+}
+
+// ─── ROUTE CARDS ──────────────────────────────────────────────────────
+function renderRouteCards() {
+  const list = document.getElementById('routeList');
+  list.innerHTML = '';
+
+  state.routes.forEach((rt, i) => {
+    const scoreColor = rt.safetyScore >= 75 ? 'var(--green)' : rt.safetyScore >= 50 ? 'var(--amber)' : 'var(--red)';
+    const card = document.createElement('div');
+    card.className = 'route-card' + (i === 0 ? ' ' + rt.selCls : '');
+    card.innerHTML = `
+      <div class="route-top">
+        <span class="route-name" style="color:${rt.color}">${rt.name}</span>
+        <span class="badge ${rt.badgeCls}">${rt.label}</span>
+      </div>
+      <div class="route-metrics">
+        <div class="metric">
+          <div class="metric-val">${rt.distance}</div>
+          <div class="metric-label">km</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val">${rt.duration}</div>
+          <div class="metric-label">min</div>
+        </div>
+        <div class="metric">
+          <div class="metric-val" style="color:${scoreColor}">${rt.safetyScore}</div>
+          <div class="metric-label">Safety</div>
+        </div>
+      </div>
+      <div class="safety-bar-wrap">
+        <div class="safety-bar-bg">
+          <div class="safety-bar-fill" style="width:${rt.safetyScore}%;background:${scoreColor}"></div>
+        </div>
+        <span class="safety-pct" style="color:${scoreColor}">${rt.safetyScore}%</span>
+      </div>`;
+    card.onclick = () => selectRoute(i);
+    list.appendChild(card);
   });
 }
 
-function toggleFilter(el) {
-  el.classList.toggle('on');
+// ─── SLIDER ───────────────────────────────────────────────────────────
+function updateSlider(key, val) {
+  state.sliders[key] = parseInt(val);
+  const colors = { accidents: 'var(--red)', lighting: 'var(--amber)', crime: 'var(--blue)', flood: '#a78bfa' };
+  const dims = { accidents: 'var(--red-dim)', lighting: 'var(--amber-dim)', crime: 'var(--blue-dim)', flood: 'rgba(167,139,250,0.12)' };
+  const el = document.getElementById('v-' + key);
+  el.textContent = val + '%';
+  el.style.color = colors[key];
+  el.style.background = dims[key];
+  renderHotspots();
+
+  // Re-score existing routes if any
+  if (state.routes.length) {
+    state.routes.forEach(rt => { rt.safetyScore = computeSafetyScore(rt.coords); });
+    state.routes.sort((a, b) => b.safetyScore - a.safetyScore);
+    renderRouteCards();
+    renderRoutesOnMap();
+  }
 }
 
-function resetMap() {
-  if (originMarker) map.removeLayer(originMarker);
-  if (destMarker) map.removeLayer(destMarker);
-  routeLayers.forEach(l => map.removeLayer(l));
-  originMarker = destMarker = null;
-  originLatLng = destLatLng = null;
-  clickMode = 'origin';
-  document.getElementById('origin').value = '';
-  document.getElementById('dest').value = '';
-  document.getElementById('routes-panel').style.display = 'none';
-  document.getElementById('instructions-panel').style.display = 'none';
-  document.getElementById('click-hint').textContent = 'Click map to set origin → destination';
-  showToast('Map reset.');
+// ─── UTILS ────────────────────────────────────────────────────────────
+function clearOrigin() {
+  document.getElementById('originInput').value = '';
+  if (state.layers.origin) { state.map.removeLayer(state.layers.origin); state.layers.origin = null; }
+  state.origin = null;
+  checkRouteReady();
 }
 
-// Init
-renderHotspots();
-renderDarkZones();
-updateRiskIndex(10);
+function clearDest() {
+  document.getElementById('destInput').value = '';
+  if (state.layers.dest) { state.map.removeLayer(state.layers.dest); state.layers.dest = null; }
+  state.dest = null;
+  checkRouteReady();
+}
+
+function resetAll() {
+  clearOrigin(); clearDest();
+  state.layers.routes.forEach(l => state.map.removeLayer(l));
+  state.layers.routes = [];
+  state.routes = [];
+  state.clickStep = 'origin';
+  document.getElementById('routesSection').style.display = 'none';
+  document.getElementById('riskSummary').classList.remove('show');
+  setHint('Click map to set 📍 Origin');
+  state.map.setView([12.9716, 77.5946], 12);
+  toast('🗺 Map reset');
+}
+
+function setHint(msg) {
+  document.getElementById('mapHint').textContent = msg;
+}
+
+function showLoading(msg = 'Computing…') {
+  document.getElementById('loadingMsg').textContent = msg;
+  document.getElementById('mapLoading').classList.add('active');
+}
+
+function hideLoading() {
+  document.getElementById('mapLoading').classList.remove('active');
+}
+
+let toastTimer;
+function toast(msg, dur = 3200) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('visible'), dur);
+}
 </script>
 </body>
 </html>
