@@ -1,1 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SafeRoute — Safety-First Navigation</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
 
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: rgba(255,255,255,0.08);
+    --accent: #00d4aa;
+    --accent2: #ff6b6b;
+    --amber: #f59e0b;
+    --text: #f0f4ff;
+    --muted: #8896b3;
+    --font: 'DM Mono', 'Courier New', monospace;
+    --sans: 'DM Sans', system-ui, sans-serif;
+  }
+
+  /* Risk Meter */
+.risk-meter-bar {
+  position: relative;
+  height: 8px;
+  border-radius: 10px;
+  margin: 10px 0;
+background: linear-gradient(to right, #00d4aa, #f59e0b, #ff4d4d);
+}
+
+/* Arrow */
+.risk-arrow {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 10px solid white;
+  transform: translateX(-50%);
+  transition: left 0.4s ease;
+}
+
+/* Number */
+.risk-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--font);
+}
+
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600&display=swap');
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    z-index: 1000;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .tagline {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: auto;
+    font-family: var(--font);
+  }
+
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 320px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex-shrink: 0;
+    z-index: 500;
+  }
+
+  .panel {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+.panel-title {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #a5b4fc;
+  font-family: var(--font);
+  margin-bottom: 14px;
+}
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .input-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-green { background: var(--accent); }
+  .dot-red { background: var(--accent2); }
+
+  .input-row input {
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 13px;
+    width: 100%;
+  }
+
+  .input-row input::placeholder { color: var(--muted); }
+
+  .btn {
+    width: 100%;
+    padding: 10px;
+    background: var(--accent);
+    color: #0a0e1a;
+    border: none;
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    margin-top: 8px;
+  }
+
+  .btn:hover { opacity: 0.85; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .btn-secondary:hover { background: var(--surface2); }
+
+  .toggle-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .toggle-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+
+  .toggle-label { color: var(--muted); }
+
+  .toggle {
+    width: 36px; height: 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .toggle.on { background: var(--accent); border-color: var(--accent); }
+
+  .toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 14px; height: 14px;
+    background: white;
+    border-radius: 50%;
+    transition: left 0.2s;
+  }
+
+  .toggle.on::after { left: 18px; }
+
+  .risk-meter {
+    display: flex;
+    gap: 4px;
+    margin-top: 12px;
+  }
+
+  .risk-bar {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--surface2);
+  }
+
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .route-card {
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .route-card:hover { background: var(--surface2); }
+  .route-card.active { border-color: var(--accent); }
+
+  .route-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .route-name {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-family: var(--font);
+  }
+
+  .badge-safe { background: rgba(0,212,170,0.15); color: var(--accent); }
+  .badge-fast { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .badge-dangerous { background: rgba(255,107,107,0.15); color: var(--accent2); }
+
+  .route-stats {
+    display: flex;
+    gap: 16px;
+  }
+
+  .route-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .route-stat-value {
+    font-size: 14px;
+    font-weight: 500;
+    font-family: var(--font);
+  }
+
+  .route-stat-label {
+    font-size: 10px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .safety-score {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .score-bar-bg {
+    flex: 1;
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .score-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .score-label { font-size: 11px; font-family: var(--font); }
+
+  #map {
+    flex: 1;
+    z-index: 1;
+  }
+
+  .map-overlay {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .overlay-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    backdrop-filter: blur(8px);
+  }
+
+  .status-pulse {
+    display: inline-block;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    margin-right: 6px;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s;
+    color: var(--accent);
+    font-family: var(--font);
+  }
+
+  .toast.show { opacity: 1; }
+
+  .hotspot-count {
+    font-size: 22px;
+    font-weight: 600;
+    font-family: var(--font);
+    color: var(--accent2);
+  }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+.stat-box {
+  background: linear-gradient(145deg, var(--surface2), #0f172a);
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stat-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.3);
+}
+
+.stat-box-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font);
+  letter-spacing: 0.02em;
+}
+
+.stat-box-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 6px;
+}
+
+  .instruction-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .instruction-step {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 12px;
+    color: var(--muted);
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .step-num {
+    font-family: var(--font);
+    color: var(--accent);
+    flex-shrink: 0;
+    width: 18px;
+    font-size: 11px;
+  }
+
+  .warning-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,107,107,0.1);
+    border: 1px solid rgba(255,107,107,0.2);
+    color: var(--accent2);
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    margin-top: 4px;
+  }
+
+  /* Leaflet dark overrides */
+  .leaflet-tile { filter: brightness(0.7) contrast(1.1) saturate(0.8) hue-rotate(195deg); }
+  .leaflet-control-attribution { display: none; }
+  .leaflet-popup-content-wrapper {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-family: var(--sans);
+    font-size: 12px;
+  }
+  .leaflet-popup-tip { background: var(--surface); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🛡</div>
+    SafeRoute
+  </div>
+  <span class="tagline">// safety-first navigation engine v1.0</span>
+</header>
+
+<div class="main">
+  <div class="sidebar" id="sidebar">
+
+    <!-- Input -->
+    <div class="panel">
+      <div class="panel-title">Route Input</div>
+      <div class="input-group">
+        <div class="input-row">
+          <div class="input-dot dot-green"></div>
+          <input id="origin" type="text" placeholder="Origin (click map or type)" />
+        </div>
+        <div class="input-row">
+          <div class="input-dot dot-red"></div>
+          <input id="dest" type="text" placeholder="Destination (click map)" />
+        </div>
+        <button class="btn" id="findRouteBtn" onclick="findRoutes()">Analyze Safe Routes →</button>
+        <button class="btn btn-secondary" onclick="resetMap()">Reset</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="panel">
+      <div class="panel-title">Area Intelligence</div>
+      <div class="stat-grid">
+        <div class="stat-box">
+          <div class="stat-box-value" style="color:var(--accent2)" id="hotspot-count">12</div>
+          <div class="stat-box-label">Accident Zones</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-value" style="color:var(--amber)" id="dark-count">7</div>
+          <div class="stat-box-label">Dark Stretches</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-box-value" style="color:var(--accent)" id="safe-pct">68%</div>
+          <div class="stat-box-label">Safe Road %</div>
+        </div>
+        <div class="stat-box">
+  <div class="stat-box-label">Risk Index</div>
+
+  <div class="risk-meter-bar">
+    <div class="risk-arrow" id="risk-arrow"></div>
+  </div>
+
+  <div class="risk-value" id="risk-idx">6</div>
+</div>
+      </div>
+    </div>
+
+    <!-- Safety Filters -->
+    <div class="panel">
+      <div class="panel-title">Safety Filters</div>
+      <div class="toggle-group">
+        <div class="toggle-item">
+          <span class="toggle-label">Avoid accident hotspots</span>
+          <div class="toggle on" id="tog-accidents" onclick="toggleFilter(this)"></div>
+        </div>
+        <div class="toggle-item">
+          <span class="toggle-label">Prefer lit streets</span>
+          <div class="toggle on" id="tog-lighting" onclick="toggleFilter(this)"></div>
+        </div>
+        <div class="toggle-item">
+          <span class="toggle-label">Avoid high-crime zones</span>
+          <div class="toggle" id="tog-crime" onclick="toggleFilter(this)"></div>
+        </div>
+        <div class="toggle-item">
+          <span class="toggle-label">Avoid flood-prone roads</span>
+          <div class="toggle" id="tog-flood" onclick="toggleFilter(this)"></div>
+        </div>
+      </div>
+    </div>
+
+
+
+    <!-- Legend -->
+    <div class="panel">
+      <div class="panel-title">Map Legend</div>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#ff6b6b; box-shadow: 0 0 6px #ff6b6b99"></div>
+          Accident hotspot (high risk)
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#f59e0b; box-shadow: 0 0 6px #f59e0b99"></div>
+          Poor lighting / moderate risk
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#00d4aa; box-shadow: 0 0 6px #00d4aa99"></div>
+          Safe route (recommended)
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#8896b3"></div>
+          Standard route (not recommended)
+        </div>
+      </div>
+    </div>
+
+    <!-- Routes appear here -->
+    <div class="panel" id="routes-panel" style="display:none">
+      <div class="panel-title">Route Options</div>
+      <div id="route-cards"></div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="panel" id="instructions-panel" style="display:none">
+      <div class="panel-title">Turn-by-turn (safe route)</div>
+      <div class="instruction-list" id="instructions"></div>
+    </div>
+
+  </div>
+
+  <!-- Map -->
+  <div style="flex:1; position:relative;">
+    <div id="map"></div>
+    <div class="map-overlay">
+      <div class="overlay-card">
+        <span class="status-pulse"></span>
+        <span style="color:var(--muted)">Live safety data</span>
+      </div>
+      <div class="overlay-card" id="click-hint" style="color:var(--muted)">
+        Click map to set origin → destination
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+
+    function updateRiskIndex(value) {
+  const arrow = document.getElementById('risk-arrow');
+  const label = document.getElementById('risk-idx');
+
+  value = Math.max(1, Math.min(10, value)); // keep between 1–10
+
+  const percent = (value - 1) / 9 * 100;
+
+  arrow.style.left = percent + '%';
+  label.textContent = value;
+
+if (value <= 3) label.style.color = '#00d4aa';   // LOW risk → green
+else if (value <= 6) label.style.color = '#f59e0b'; // medium → amber
+else label.style.color = '#ff4d4d';  // HIGH risk → red
+}
+const BENGALURU = [12.9716, 77.5946];
+
+const map = L.map('map', {
+  center: BENGALURU,
+  zoom: 13,
+  zoomControl: false
+});
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+// Simulated accident hotspots (Bengaluru area coordinates)
+const HOTSPOTS = [
+  { lat: 12.9780, lng: 77.5910, severity: 9, name: "Silk Board Junction", accidents: 47 },
+  { lat: 12.9716, lng: 77.5948, severity: 7, name: "KR Circle", accidents: 31 },
+  { lat: 12.9592, lng: 77.6974, severity: 8, name: "Marathahalli Bridge", accidents: 42 },
+  { lat: 12.9352, lng: 77.6245, severity: 6, name: "Bommanahalli Signal", accidents: 22 },
+  { lat: 13.0120, lng: 77.5550, severity: 9, name: "Mekhri Circle", accidents: 55 },
+  { lat: 12.9850, lng: 77.7250, stringify: 5, name: "Whitefield Cross", accidents: 18 },
+  { lat: 12.9450, lng: 77.5450, severity: 7, name: "Banashankari", accidents: 33 },
+  { lat: 13.0300, lng: 77.5800, severity: 6, name: "Hebbal Flyover", accidents: 27 },
+  { lat: 12.9200, lng: 77.6700, severity: 8, name: "Electronic City Toll", accidents: 38 },
+  { lat: 12.9950, lng: 77.6100, severity: 5, name: "Indiranagar 100ft", accidents: 15 },
+  { lat: 12.9650, lng: 77.7000, severity: 7, name: "ITPL Signal", accidents: 29 },
+  { lat: 12.9000, lng: 77.5850, severity: 6, name: "JP Nagar 7th Phase", accidents: 21 },
+];
+
+const DARK_ZONES = [
+  { lat: 12.9550, lng: 77.6200, name: "Domlur Underpass" },
+  { lat: 13.0200, lng: 77.6400, name: "Kadugodi Road" },
+  { lat: 12.9100, lng: 77.6500, name: "Harlur Road" },
+  { lat: 12.9800, lng: 77.5700, name: "Yeshwanthpur Lane" },
+  { lat: 12.9400, lng: 77.5300, name: "Kanakapura Rd stretch" },
+  { lat: 13.0450, lng: 77.5950, name: "Yelahanka Old Town" },
+  { lat: 12.9250, lng: 77.5600, name: "Uttarahalli Road" },
+];
+
+let hotspotMarkers = [], darkMarkers = [], routeLayers = [];
+let originMarker = null, destMarker = null;
+let originLatLng = null, destLatLng = null;
+let clickMode = 'origin';
+
+function createPulseIcon(color, size = 14) {
+  return L.divIcon({
+    html: `<div style="
+      width:${size}px;height:${size}px;
+      background:${color};
+      border-radius:50%;
+      border:2px solid white;
+      box-shadow:0 0 8px ${color}99, 0 0 20px ${color}44;
+    "></div>`,
+    className: '',
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+  });
+}
+
+function renderHotspots() {
+  hotspotMarkers.forEach(m => map.removeLayer(m));
+  hotspotMarkers = [];
+
+  HOTSPOTS.forEach(h => {
+    const s = h.severity || 6;
+    const color = s >= 8 ? '#ff6b6b' : s >= 6 ? '#f59e0b' : '#ffd700';
+    const r = 8 + s * 3;
+
+    const circle = L.circle([h.lat, h.lng], {
+      radius: 120 + s * 30,
+      color: color,
+      fillColor: color,
+      fillOpacity: 0.18,
+      weight: 1,
+      opacity: 0.5,
+    }).addTo(map);
+
+    const m = L.marker([h.lat, h.lng], { icon: createPulseIcon(color, 10 + s) })
+      .addTo(map)
+      .bindPopup(`
+        <div style="font-family:'DM Sans',sans-serif;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px;">⚠️ ${h.name}</div>
+          <div style="color:#8896b3;font-size:11px;">Severity: <span style="color:${color}">${s}/10</span></div>
+          <div style="color:#8896b3;font-size:11px;">Accidents (2023): <strong style="color:#f0f4ff">${h.accidents}</strong></div>
+          <div style="color:#ff6b6b;font-size:11px;margin-top:4px;">⛔ Route avoids this zone</div>
+        </div>
+      `);
+
+    hotspotMarkers.push(m, circle);
+  });
+}
+
+function renderDarkZones() {
+  darkMarkers.forEach(m => map.removeLayer(m));
+  darkMarkers = [];
+
+  DARK_ZONES.forEach(d => {
+    const m = L.marker([d.lat, d.lng], { icon: createPulseIcon('#f59e0b', 10) })
+      .addTo(map)
+      .bindPopup(`
+        <div style="font-family:'DM Sans',sans-serif;">
+          <div style="font-weight:600;font-size:13px;margin-bottom:6px;">🌑 ${d.name}</div>
+          <div style="color:#f59e0b;font-size:11px;">Poor street lighting detected</div>
+        </div>
+      `);
+    darkMarkers.push(m);
+  });
+}
+
+function showToast(msg, dur = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+
+map.on('click', (e) => {
+  const { lat, lng } = e.latlng;
+
+  if (clickMode === 'origin') {
+    if (originMarker) map.removeLayer(originMarker);
+    originLatLng = [lat, lng];
+    originMarker = L.marker([lat, lng], {
+      icon: L.divIcon({
+        html: `<div style="width:16px;height:16px;background:#00d4aa;border-radius:50%;border:3px solid white;box-shadow:0 0 12px #00d4aa99;"></div>`,
+        className: '', iconSize: [16,16], iconAnchor: [8,8]
+      })
+    }).addTo(map).bindPopup('Origin').openPopup();
+    document.getElementById('origin').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    clickMode = 'dest';
+    document.getElementById('click-hint').innerHTML = 'Now click to set <strong>destination</strong>';
+    showToast('Origin set. Click to set destination.');
+  } else {
+    if (destMarker) map.removeLayer(destMarker);
+    destLatLng = [lat, lng];
+    destMarker = L.marker([lat, lng], {
+      icon: L.divIcon({
+        html: `<div style="width:16px;height:16px;background:#ff6b6b;border-radius:50%;border:3px solid white;box-shadow:0 0 12px #ff6b6b99;"></div>`,
+        className: '', iconSize: [16,16], iconAnchor: [8,8]
+      })
+    }).addTo(map).bindPopup('Destination').openPopup();
+    document.getElementById('dest').value = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    clickMode = 'origin';
+    document.getElementById('click-hint').textContent = 'Both points set!';
+    showToast('Destination set. Click "Analyze Safe Routes" →');
+  }
+});
+
+function computeSafetyScore(path, avoidHotspots) {
+  if (!avoidHotspots) return Math.floor(Math.random() * 30 + 35);
+  let score = 95;
+  HOTSPOTS.forEach(h => {
+    path.forEach(pt => {
+      const d = Math.sqrt(Math.pow(pt[0]-h.lat,2)+Math.pow(pt[1]-h.lng,2));
+      if (d < 0.015) score -= (h.severity || 5) * 1.2;
+    });
+  });
+  return Math.max(10, Math.min(98, Math.round(score)));
+}
+
+function generateRoute(origin, dest, offset = 0, safeAlt = false) {
+  const lats = [origin[0], origin[0] + (dest[0]-origin[0])*0.25 + offset*0.03,
+                origin[0] + (dest[0]-origin[0])*0.5 + offset*0.02,
+                origin[0] + (dest[0]-origin[0])*0.75 + offset*0.01, dest[0]];
+  const lngs = [origin[1], origin[1] + (dest[1]-origin[1])*0.25 + (safeAlt ? -offset*0.02 : offset*0.015),
+                origin[1] + (dest[1]-origin[1])*0.5,
+                origin[1] + (dest[1]-origin[1])*0.75 + offset*0.01, dest[1]];
+  return lats.map((l,i) => [l, lngs[i]]);
+}
+
+function distKm(a, b) {
+  const R = 6371;
+  const dLat = (b[0]-a[0]) * Math.PI/180;
+  const dLng = (b[1]-a[1]) * Math.PI/180;
+  const x = Math.sin(dLat/2)**2 + Math.cos(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1-x));
+}
+
+function findRoutes() {
+  if (!originLatLng || !destLatLng) {
+    showToast('Please set origin and destination on the map first.');
+    return;
+  }
+
+  routeLayers.forEach(l => map.removeLayer(l));
+  routeLayers = [];
+
+  const avoidHotspots = document.getElementById('tog-accidents').classList.contains('on');
+  const preferLit = document.getElementById('tog-lighting').classList.contains('on');
+
+  const safeRoute = generateRoute(originLatLng, destLatLng, 1, true);
+  const fastRoute = generateRoute(originLatLng, destLatLng, 0, false);
+  const altRoute  = generateRoute(originLatLng, destLatLng, -1, false);
+
+  const baseDist = distKm(originLatLng, destLatLng);
+
+  const routes = [
+    {
+      name: "SafeRoute (recommended)",
+      path: safeRoute,
+      color: '#00d4aa',
+      weight: 5,
+      dist: (baseDist * 1.12).toFixed(1),
+      time: Math.round(baseDist * 1.12 * 3.2),
+      safeScore: computeSafetyScore(safeRoute, true),
+      badge: 'badge-safe',
+      badgeText: 'SAFEST',
+      hotspots: 0,
+    },
+    {
+      name: "Fastest Route",
+      path: fastRoute,
+      color: '#f59e0b',
+      weight: 3,
+      dist: baseDist.toFixed(1),
+      time: Math.round(baseDist * 2.8),
+      safeScore: computeSafetyScore(fastRoute, false),
+      badge: 'badge-fast',
+      badgeText: 'FASTEST',
+      hotspots: Math.floor(Math.random()*3)+2,
+    },
+    {
+      name: "Alternate Route",
+      path: altRoute,
+      color: '#8896b3',
+      weight: 2,
+      dist: (baseDist * 1.05).toFixed(1),
+      time: Math.round(baseDist * 1.05 * 3.0),
+      safeScore: computeSafetyScore(altRoute, false),
+      badge: 'badge-dangerous',
+      badgeText: 'RISKY',
+      hotspots: Math.floor(Math.random()*2)+3,
+    }
+  ];
+
+  routes.forEach((r, i) => {
+    const dash = i === 0 ? null : '8 4';
+    const line = L.polyline(r.path, {
+      color: r.color,
+      weight: r.weight,
+      opacity: i === 0 ? 0.9 : 0.55,
+      dashArray: dash
+    }).addTo(map);
+    routeLayers.push(line);
+  });
+
+  map.fitBounds(L.latLngBounds([originLatLng, destLatLng]).pad(0.2));
+
+  const panel = document.getElementById('routes-panel');
+  panel.style.display = '';
+  const cards = document.getElementById('route-cards');
+  cards.innerHTML = '';
+
+  routes.forEach((r, i) => {
+    const scoreColor = r.safeScore >= 75 ? '#00d4aa' : r.safeScore >= 50 ? '#f59e0b' : '#ff6b6b';
+    const hotspotWarn = r.hotspots > 0 ? `<div class="warning-chip">⚠ ${r.hotspots} hotspot${r.hotspots>1?'s':''} crossed</div>` : '';
+    cards.innerHTML += `
+      <div class="route-card ${i===0?'active':''}" onclick="selectRoute(${i})">
+        <div class="route-card-header">
+          <span class="route-name">${r.name}</span>
+          <span class="badge ${r.badge}">${r.badgeText}</span>
+        </div>
+        <div class="route-stats">
+          <div class="route-stat">
+            <span class="route-stat-value">${r.dist} km</span>
+            <span class="route-stat-label">Distance</span>
+          </div>
+          <div class="route-stat">
+            <span class="route-stat-value">${r.time} min</span>
+            <span class="route-stat-label">Est. Time</span>
+          </div>
+          <div class="route-stat">
+            <span class="route-stat-value" style="color:${scoreColor}">${r.safeScore}</span>
+            <span class="route-stat-label">Safety/100</span>
+          </div>
+        </div>
+        <div class="safety-score">
+          <div class="score-bar-bg">
+            <div class="score-bar-fill" style="width:${r.safeScore}%;background:${scoreColor}"></div>
+          </div>
+          <span class="score-label" style="color:${scoreColor}">${r.safeScore}%</span>
+        </div>
+        ${hotspotWarn}
+      </div>
+    `;
+  });
+
+  // Turn-by-turn instructions for safe route
+  const instrPanel = document.getElementById('instructions-panel');
+  instrPanel.style.display = '';
+  const instrEl = document.getElementById('instructions');
+  const steps = [
+    { icon: '↗', text: 'Head northeast on Main Road', note: null },
+    { icon: '→', text: 'Turn right at Signal Point (well-lit)', note: null },
+    { icon: '↖', text: `Continue through ${avoidHotspots ? 'safe corridor (hotspot avoided)' : 'junction area'}` , note: avoidHotspots ? 'Rerouted away from accident zone' : null },
+    { icon: '→', text: preferLit ? 'Stay on Boulevard (street-lit route)' : 'Turn onto Boulevard', note: null },
+    { icon: '⬆', text: 'Straight ahead to destination', note: null },
+  ];
+
+  instrEl.innerHTML = steps.map((s, i) => `
+    <div class="instruction-step">
+      <span class="step-num">${s.icon}</span>
+      <div>
+        <div>${s.text}</div>
+        ${s.note ? `<div class="warning-chip" style="background:rgba(0,212,170,0.1);border-color:rgba(0,212,170,0.2);color:#00d4aa">${s.note}</div>` : ''}
+      </div>
+    </div>
+  `).join('');
+
+  showToast('Safe route calculated. 0 hotspots on recommended path.');
+}
+
+function selectRoute(idx) {
+  document.querySelectorAll('.route-card').forEach((c, i) => {
+    c.classList.toggle('active', i === idx);
+  });
+}
+
+function toggleFilter(el) {
+  el.classList.toggle('on');
+}
+
+function resetMap() {
+  if (originMarker) map.removeLayer(originMarker);
+  if (destMarker) map.removeLayer(destMarker);
+  routeLayers.forEach(l => map.removeLayer(l));
+  originMarker = destMarker = null;
+  originLatLng = destLatLng = null;
+  clickMode = 'origin';
+  document.getElementById('origin').value = '';
+  document.getElementById('dest').value = '';
+  document.getElementById('routes-panel').style.display = 'none';
+  document.getElementById('instructions-panel').style.display = 'none';
+  document.getElementById('click-hint').textContent = 'Click map to set origin → destination';
+  showToast('Map reset.');
+}
+
+// Init
+renderHotspots();
+renderDarkZones();
+updateRiskIndex(10);
+</script>
+</body>
+</html>
