@@ -10,6 +10,11 @@ Unsafe or high-risk areas
 
 This can put users at risk, especially during night travel or in unfamiliar locations.
 
+⚙️ How to Run Locally: 
+Clone the Repository
+git clone https://github.com/your-username/saferoute.git
+cd saferoute
+
 💡 Solution
 
 SafeRoute enhances traditional navigation by incorporating safety metrics into route planning.
